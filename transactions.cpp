@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <atomic>
+#include <functional>
 
 class Transaction {
     public:
@@ -15,10 +17,15 @@ class Transaction {
             return amount;
         }
 
+        uint64_t getID() const {
+            return ID;
+        }
+
         Transaction(std::string transactionCategory, double transactionAmount) 
-        : category(transactionCategory), amount(transactionAmount) 
+        : ID(++next_id), category(transactionCategory), amount(transactionAmount) 
         
         {
+            std::cout << "ID: " << ID << "\n";
             std::cout << "Category: " << category << "\n";
             std::cout << "Amount: " << amount << "\n";
         }
@@ -27,26 +34,42 @@ class Transaction {
         
         std::string category{};
         double amount{};
+        static inline std::atomic<uint64_t> next_id{0};
+        uint64_t ID;
 };
 
 class Ledger {
 
     public:
 
-        std::vector<Transaction> getVector() const {
+        std::vector<Transaction> getVector()  {
             return transactions;
         }
 
         void addTransaction(const std::string& category, const double& amount) {
             Transaction transactionobj(category, amount);
             transactions.push_back(transactionobj);
+        }
 
+        void removeTransaction(uint64_t ID) {
+            std::erase_if(transactions, [ID](const Transaction& t) {
+                return t.getID() == ID;
+            });
+        }
+
+        void sortTransactions() {
+            sort(transactions.begin(), transactions.end(),
+            [](const Transaction& a, const Transaction& b) {
+                return a.getAmount() < b.getAmount();
+            });
+        
         }
 
         void printAll() const {
             for (const Transaction& trans : transactions) {
-                std::cout << trans.getCategory() << "\n";
-                std::cout << trans.getAmount() << "\n";
+                std::cout << "ID: " << trans.getID() << "\n";
+                std::cout << "Category: " << trans.getCategory() << "\n";
+                std::cout << "Amount: " << trans.getAmount() << "\n";
             }
         }
 
@@ -66,8 +89,9 @@ class Ledger {
             for (const Transaction& trans : transactions) {
                 if (trans.getCategory() == searchCategory) {
                     found = true;
-                    std::cout << trans.getCategory() << "\n";
-                    std::cout << trans.getAmount() << "\n";
+                std::cout << "ID: " << trans.getID() << "\n";
+                std::cout << "Category: " << trans.getCategory() << "\n";
+                std::cout << "Amount: " << trans.getAmount() << "\n";
                 }
             }
                 if (!found) {
@@ -91,7 +115,6 @@ class Ledger {
             while (std::getline(inFile, categoryString, ',') && std::getline(inFile, amountString, '\n')) {
                 double amount = std::stod(amountString);
                 addTransaction(categoryString, amount);
-
             }
        }
 
@@ -110,7 +133,7 @@ bool transaction_menu() {
     myLedger.loadFile("ledger.csv");
 
     while (true) {
-        std::cout << "Menu" << "\n" << "1.  Add.  2.  View All Transactions.  3.  Total Balance.  4.  Print Categories  5.  Quit" << "\n";
+        std::cout << "Menu" << "\n" << "1.  Add.  2.  View All Transactions.  3.  Total Balance.  4.  Print Categories.  5.  Remove.  6.  Quit" << "\n";
         std::cin >> option;
 
         if (option == 1) {
@@ -124,7 +147,14 @@ bool transaction_menu() {
         }
 
         else if (option == 2) {
+            int sort{};
             myLedger.printAll();
+            std::cout << "Sort by Amount = 1" << "\n";
+            std::cin >> sort;
+
+            if (sort == 1) {
+                myLedger.sortTransactions();
+            }
         }
 
         else if (option == 3) {
@@ -133,14 +163,29 @@ bool transaction_menu() {
         }
 
         else if (option == 4) {
+            int sort{};
             std::string selectedCategory{};
 
             std::cout << "Enter a category: " << "\n";
             std::getline(std::cin >> std::ws, selectedCategory);
             myLedger.printByCategory(selectedCategory);
+
+            std::cout << "Sort by Amount = 1" << "\n";
+            std::cin >> sort;
+            if (sort == 1) {
+                myLedger.sortTransactions();
+            }
         }
 
         else if (option == 5) {
+            uint64_t ID_;
+            
+            std::cout << "Enter a Transaction ID: " << "\n";
+            std::cin >> ID_;
+            myLedger.removeTransaction(ID_);
+        }
+
+        else if (option == 6) {
             myLedger.saveFile("ledger.csv");
             return false;
         }
