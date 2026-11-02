@@ -1,5 +1,5 @@
-transactions
+main
 .DS_Store
-
+ledger.csv
 *.dSYM/
 
