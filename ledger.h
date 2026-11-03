@@ -78,16 +78,18 @@ class Ledger {
             std::ofstream outFile(filename);
             
             for (const Transaction& trans : transactions) {
-                outFile << trans.getCategory() << "," << trans.getAmount() << "\n";
+                outFile << trans.getID() << "," << trans.getCategory() << "," << trans.getAmount() << "\n";
             }
         }
        void loadFile(const std::string& filename)  {
             std::ifstream inFile(filename);
 
+            std::string idString{};
             std::string categoryString{};
             std::string amountString{};
 
-            while (std::getline(inFile, categoryString, ',') && std::getline(inFile, amountString, '\n')) {
+            while (std::getline(inFile, idString, ',') && std::getline(inFile, categoryString, ',') && std::getline(inFile, amountString, '\n')) {
+                std::uint64_t ID = std::stoull(idString);
                 double amount = std::stod(amountString);
                 addTransaction(categoryString, amount);
             }
